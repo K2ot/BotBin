@@ -25,5 +25,3 @@ struct MarketData
     std::string symbol24hrStats;         // Statystyki 24-godzinne dla symbolu
     std::string marketStreamData;        // Dane strumieniowe rynku
 };
-
-std::queue<MarketData> marketDataQueue;

@@ -2,33 +2,12 @@
 #include "Sql.h"
 #include "ProjectDataTypes.h"
 
-int main()
+std::queue<MarketData> marketDataQueue;
+bool stopFlag{ false };
+std::condition_variable queueCondVar;
+
+void dataProducer()
 {
-	setlocale(LC_CTYPE, "Polish");
-	std::queue<MarketData> marketDataQueue;
-	// Parametry do połączenia z bazą danych
-	std::string host = "localhost";  // Adres serwera bazy danych
-	int port = 33060;                 // Port MySQL
-	std::string user = "Admin";       // Nazwa użytkownika
-	std::string password = "1234";  // Hasło użytkownika
-	std::string database = "sakila";    // Nazwa bazy danych
-
-	// Tworzenie obiektu klasy MySQLConnector
-	MySQLConnector dbConnector(host, port, user, password, database);
-
-
-	std::string query = "CREATE DATABASE IF NOT EXISTS binance_data;";
-	dbConnector.executeQuery(query);
-
-	query = "USE binance_data;";
-	dbConnector.executeQuery(query);
-
-
-
-	dbConnector.executeQuery(query);
-
-	BinanceBot bot;
-	//std::vector<std::string> all_symbols = bot.get_all_symbols();
 	std::vector<std::string> all_symbols;
 	all_symbols.push_back("ETHPLN");
 	// all_symbols.push_back("BTCPLN");
@@ -37,30 +16,8 @@ int main()
 	// all_symbols.push_back("ETHBTC");
 	// all_symbols.push_back("BTCETH");
 
-	for (const auto& symbol : all_symbols)
-	{
-		query = "CREATE TABLE IF NOT EXISTS `" + symbol + "` ("
-			"id INT AUTO_INCREMENT PRIMARY KEY, "
-			"open_time BIGINT NOT NULL, "
-			"open_price DECIMAL(20,10) NOT NULL, "
-			"high_price DECIMAL(20,10) NOT NULL, "
-			"low_price DECIMAL(20,10) NOT NULL, "
-			"close_price DECIMAL(20,10) NOT NULL, "
-			"volume DECIMAL(20,10) NOT NULL, "
-			"close_time BIGINT NOT NULL, "
-			"quote_asset_volume DECIMAL(20,10) NOT NULL, "
-			"number_of_trades INT NOT NULL, "
-			"taker_buy_base_asset_volume DECIMAL(20,10) NOT NULL, "
-			"taker_buy_quote_asset_volume DECIMAL(20,10) NOT NULL, "
-			"ignore_flag VARCHAR(255), "
-			"order_book_data LONGTEXT, "
-			"recent_trades_data LONGTEXT, "
-			"currency_data LONGTEXT, "
-			"symbol_24hr_stats LONGTEXT, "
-			"market_stream_data LONGTEXT"
-			");";
-		dbConnector.executeQuery(query);
-	}
+	BinanceBot bot;
+	const	std::string	interval{ "12h" };
 
 	for (const auto& symbol : all_symbols)
 	{
@@ -68,8 +25,75 @@ int main()
 		std::cout << "Current price of " << symbol << ": " << ticker_data["price"].asString() << std::endl;
 
 		std::cout << "Fetching historical data for " << symbol << std::endl;
-		bot.get_historical_klines(symbol, "5m", marketDataQueue);
+		bot.get_historical_klines(symbol, interval, marketDataQueue);
+
+	}
+	std::cout << "Queue size:  " << marketDataQueue.size() << std::endl;
+	queueCondVar.notify_one();
+	stopFlag = true;
+}
+
+void dataConsumer()
+{
+	// Parametry do połączenia z bazą danych
+	std::string host = "localhost";  // Adres serwera bazy danych
+	int port = 33060;                 // Port MySQL
+	std::string user = "Admin";       // Nazwa użytkownika
+	std::string password = "1234";  // Hasło użytkownika
+	std::string database = "binance_data";    // Nazwa bazy danych
+
+	// Tworzenie obiektu klasy MySQLConnector
+	MySQLConnector dbConnector(host, port, user, password, database);
+
+	std::unique_lock<std::mutex> lock(queueMutex);
+	while (true)
+	{
+		queueCondVar.wait(lock, [] { return !marketDataQueue.empty() || stopFlag; });
+
+		if (marketDataQueue.empty())
+		{
+			break;
+		}
+
+		// Pobierz dane z przodu kolejki
+		MarketData data = marketDataQueue.front();
+		marketDataQueue.pop();
+
+		// Odblokuj mutex podczas wykonywania operacji na bazie danych
+		lock.unlock();
+
+		// Wysyłanie danych do bazy danych (funkcja symulująca)
+		dbConnector.sendDataToDatabase(data);
+
+		// Ponownie zablokuj mutex na kolejne operacje
+		lock.lock();
 	}
 
+}
+
+
+int main()
+{
+	setlocale(LC_CTYPE, "Polish");
+
+	std::thread producerThread(dataProducer);
+	std::thread consumerThread(dataConsumer);
+	while (!stopFlag)
+	{
+		if (!marketDataQueue.empty())
+		{
+			queueCondVar.notify_one();
+		}
+	}
+
+	if (producerThread.joinable())
+	{
+		producerThread.join();
+	}
+	if (consumerThread.joinable())
+	{
+		consumerThread.join();
+	}
 	return 0;
 }
+
