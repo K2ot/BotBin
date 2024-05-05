@@ -37,7 +37,7 @@ void dataConsumer()
 {
 	// Parametry do połączenia z bazą danych
 	std::string host = "localhost";  // Adres serwera bazy danych
-	int port = 33060;                 // Port MySQL
+	int port = 33060;                 // Port MySQLx
 	std::string user = "Admin";       // Nazwa użytkownika
 	std::string password = "1234";  // Hasło użytkownika
 	std::string database = "binance_data";    // Nazwa bazy danych
