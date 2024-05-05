@@ -75,6 +75,11 @@ void dataConsumer()
 int main()
 {
 	setlocale(LC_CTYPE, "Polish");
+	std::cout << "Start Queue size:  " << marketDataQueue.size() << std::endl;
+	while (!marketDataQueue.empty())
+	{
+		marketDataQueue.pop();
+	}
 
 	std::thread producerThread(dataProducer);
 	std::thread consumerThread(dataConsumer);
