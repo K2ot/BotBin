@@ -1,23 +1,18 @@
 ﻿#include "BinanceBot.h"
 #include "Sql.h"
 #include "ProjectDataTypes.h"
+#include <functional>
 
 std::queue<MarketData> marketDataQueue;
 bool stopFlag{ false };
 std::condition_variable queueCondVar;
+unsigned int inQueue{ 0 };
 
-void dataProducer()
+static void dataProducer(const int64_t& startTime )
 {
-	std::vector<std::string> all_symbols;
-	all_symbols.push_back("ETHPLN");
-	// all_symbols.push_back("BTCPLN");
-	// all_symbols.push_back("BTCUSDT");
-	// all_symbols.push_back("ETHUSDT");
-	// all_symbols.push_back("ETHBTC");
-	// all_symbols.push_back("BTCETH");
 
 	BinanceBot bot;
-	const	std::string	interval{ "12h" };
+	const	std::string	interval{ "5m" };
 
 	for (const auto& symbol : all_symbols)
 	{
@@ -25,7 +20,7 @@ void dataProducer()
 		std::cout << "Current price of " << symbol << ": " << ticker_data["price"].asString() << std::endl;
 
 		std::cout << "Fetching historical data for " << symbol << std::endl;
-		bot.get_historical_klines(symbol, interval, marketDataQueue);
+		inQueue = bot.get_historical_klines(symbol, interval, startTime ,marketDataQueue);
 
 	}
 	std::cout << "Queue size:  " << marketDataQueue.size() << std::endl;
@@ -33,8 +28,55 @@ void dataProducer()
 	stopFlag = true;
 }
 
-void dataConsumer()
+static void dataConsumer(MySQLConnector& connector)
 {
+
+
+	while (true)
+	{
+		MarketData data;
+		{
+			if (stopFlag && marketDataQueue.empty())
+			{
+				break;
+			}
+			std::unique_lock<std::mutex> lock(queueMutex);
+			queueCondVar.wait(lock, [] { return !marketDataQueue.empty(); });
+
+			if (marketDataQueue.empty())
+			{
+				continue;
+			}
+
+			// Pobierz dane z przodu kolejki
+			data = marketDataQueue.front();
+			marketDataQueue.pop();
+		}
+
+		// Wysyłanie danych do bazy danych 
+		connector.sendDataToDatabase(data);
+
+	}
+}
+
+int main()
+{
+	setlocale(LC_CTYPE, "Polish");
+	const	std::string	interval{ "5m" };
+
+	std::vector<std::string> all_symbols;
+	all_symbols.push_back("ETHPLN");
+	// all_symbols.push_back("BTCPLN");
+	// all_symbols.push_back("BTCUSDT");
+	// all_symbols.push_back("ETHUSDT");
+	// all_symbols.push_back("ETHBTC");
+	// all_symbols.push_back("BTCETH");
+	 
+	// TODO: 1 zrobic wektor par: waluta-> najnowsza data otwarcia
+	// TODO: 2 przekazać ją do dataProducer
+	// TODO: 3 przekazać interwał
+
+	
 	// Parametry do połączenia z bazą danych
 	std::string host = "localhost";  // Adres serwera bazy danych
 	int port = 33060;                 // Port MySQLx
@@ -45,44 +87,16 @@ void dataConsumer()
 	// Tworzenie obiektu klasy MySQLConnector
 	MySQLConnector dbConnector(host, port, user, password, database);
 
-	std::unique_lock<std::mutex> lock(queueMutex);
-	while (true)
-	{
-		queueCondVar.wait(lock, [] { return !marketDataQueue.empty() || stopFlag; });
 
-		if (marketDataQueue.empty())
-		{
-			break;
-		}
-
-		// Pobierz dane z przodu kolejki
-		MarketData data = marketDataQueue.front();
-		marketDataQueue.pop();
-
-		// Odblokuj mutex podczas wykonywania operacji na bazie danych
-		lock.unlock();
-
-		// Wysyłanie danych do bazy danych (funkcja symulująca)
-		dbConnector.sendDataToDatabase(data);
-
-		// Ponownie zablokuj mutex na kolejne operacje
-		lock.lock();
-	}
-
-}
-
-
-int main()
-{
-	setlocale(LC_CTYPE, "Polish");
 	std::cout << "Start Queue size:  " << marketDataQueue.size() << std::endl;
-	while (!marketDataQueue.empty())
-	{
-		marketDataQueue.pop();
-	}
 
-	std::thread producerThread(dataProducer);
-	std::thread consumerThread(dataConsumer);
+	int64_t startTime{ 0 };
+	std::cout << "Start Time:  " << marketDataQueue.size() << std::endl;
+	std::thread producerThread(dataProducer, std::ref(startTime));
+	std::thread consumerThread(dataConsumer, std::ref(dbConnector));
+
+
+
 	while (!stopFlag)
 	{
 		if (!marketDataQueue.empty())
@@ -90,6 +104,8 @@ int main()
 			queueCondVar.notify_one();
 		}
 	}
+
+	std::cout << "End Queue size:  " << inQueue << std::endl;
 
 	if (producerThread.joinable())
 	{
@@ -99,6 +115,9 @@ int main()
 	{
 		consumerThread.join();
 	}
+
+	std::cout << "End2 Queue size:  " << inQueue << std::endl;
+	std::cout << "End3 Queue size:  " << marketDataQueue.size() << std::endl;
 	return 0;
 }
 

@@ -20,14 +20,15 @@ public:
 	~BinanceBot() {};
 	Json::Value get_ticker(const std::string& symbol);
 	std::vector<std::string> get_all_symbols();
-	void get_historical_klines(const std::string& symbol, const std::string& interval, std::queue<MarketData>& output_queue);
+	unsigned int get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& startTime, std::queue<MarketData>& output_queue);
 
 };
 
-void BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, std::queue<MarketData>& output_queue)
+unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& startTime, std::queue<MarketData>& output_queue)
 {
 	const int limit = 1000; // Maksymalna liczba wyników na ¿¹danie
-	int64_t startTime = 0; // Ustaw startTime na 0, aby pobraæ dane od pocz¹tku istnienia waluty
+	int i{ 0 };
+	//int64_t startTime = 0; // Ustaw startTime na 0, aby pobraæ dane od pocz¹tku istnienia waluty
 	std::vector<std::vector<double>> klines;
 
 	while (true)
@@ -80,7 +81,7 @@ void BinanceBot::get_historical_klines(const std::string& symbol, const std::str
 				data.currencyData = kline[14].asString();
 				data.symbol24hrStats = kline[15].asString();
 				data.marketStreamData = kline[16].asString();
-
+				i++;
 				output_queue.push(data);
 			}
 			catch (const std::exception& e)
@@ -98,6 +99,7 @@ void BinanceBot::get_historical_klines(const std::string& symbol, const std::str
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Dodaj opóŸnienie, aby nie przekroczyæ limitu API Binance
 	}
+	return i;
 }
 
 std::string BinanceBot::get_binance_data(const std::string& endpoint)
