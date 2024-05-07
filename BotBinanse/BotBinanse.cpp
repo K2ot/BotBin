@@ -2,25 +2,28 @@
 #include "Sql.h"
 #include "ProjectDataTypes.h"
 #include <functional>
+#include <utility>
 
-std::queue<MarketData> marketDataQueue;
+std::queue<MarketData> marketDataQueue; //TODO: zrobić kolejkę wektorów z damnymi z API 
 bool stopFlag{ false };
 std::condition_variable queueCondVar;
 unsigned int inQueue{ 0 };
 
-static void dataProducer(const int64_t& startTime )
+static void dataProducer(const std::string	interval, const std::vector<std::pair<std::string, int64_t>> all_symbols)
 {
-
 	BinanceBot bot;
-	const	std::string	interval{ "5m" };
 
 	for (const auto& symbol : all_symbols)
 	{
-		Json::Value ticker_data = bot.get_ticker(symbol);
-		std::cout << "Current price of " << symbol << ": " << ticker_data["price"].asString() << std::endl;
+		Json::Value ticker_data = bot.get_ticker(symbol.first);
+		std::cout << std::endl << "***********************************"  << std::endl;
+		std::cout << "Current price of " << symbol.first << ": " << ticker_data["price"].asString() << std::endl;
 
-		std::cout << "Fetching historical data for " << symbol << std::endl;
-		inQueue = bot.get_historical_klines(symbol, interval, startTime ,marketDataQueue);
+		std::cout << "Fetching historical data for: " << symbol.first << std::endl;
+		std::cout << "Latest opening time: " << symbol.second << std::endl;
+		std::cout << "Interval: " << interval << std::endl;
+
+		inQueue = bot.get_historical_klines(symbol.first, interval, symbol.second, marketDataQueue);
 
 	}
 	std::cout << "Queue size:  " << marketDataQueue.size() << std::endl;
@@ -30,8 +33,6 @@ static void dataProducer(const int64_t& startTime )
 
 static void dataConsumer(MySQLConnector& connector)
 {
-
-
 	while (true)
 	{
 		MarketData data;
@@ -55,28 +56,24 @@ static void dataConsumer(MySQLConnector& connector)
 
 		// Wysyłanie danych do bazy danych 
 		connector.sendDataToDatabase(data);
-
 	}
 }
 
 int main()
 {
 	setlocale(LC_CTYPE, "Polish");
-	const	std::string	interval{ "5m" };
+	const	std::string	interval{ "1m" };
 
-	std::vector<std::string> all_symbols;
-	all_symbols.push_back("ETHPLN");
-	// all_symbols.push_back("BTCPLN");
-	// all_symbols.push_back("BTCUSDT");
-	// all_symbols.push_back("ETHUSDT");
-	// all_symbols.push_back("ETHBTC");
-	// all_symbols.push_back("BTCETH");
-	 
-	// TODO: 1 zrobic wektor par: waluta-> najnowsza data otwarcia
-	// TODO: 2 przekazać ją do dataProducer
-	// TODO: 3 przekazać interwał
+	//zrobic wektor par: waluta -> najnowsza data otwarcia
+	std::vector<std::pair<std::string, int64_t>> all_symbols;
 
-	
+	all_symbols.push_back(std::make_pair("ETHPLN", 0));
+	all_symbols.push_back(std::make_pair("BTCPLN", 0));
+	// all_symbols.push_back(std::make_pair("BTCUSDT", 0);
+	// all_symbols.push_back("ETHUSDT", 0);
+	// all_symbols.push_back("ETHBTC", 0);
+	// all_symbols.push_back("BTCETH", 0);
+
 	// Parametry do połączenia z bazą danych
 	std::string host = "localhost";  // Adres serwera bazy danych
 	int port = 33060;                 // Port MySQLx
@@ -87,16 +84,22 @@ int main()
 	// Tworzenie obiektu klasy MySQLConnector
 	MySQLConnector dbConnector(host, port, user, password, database);
 
+	for (auto& symbol : all_symbols)
+	{
+		dbConnector.addTable(symbol.first);
+		symbol.second = dbConnector.fetchMaxOpenTime(symbol.first);
+		std::cout << "Currency pair:  " << symbol.first << " Max Open time  " << symbol.second << std::endl;
+	}
 
 	std::cout << "Start Queue size:  " << marketDataQueue.size() << std::endl;
 
 	int64_t startTime{ 0 };
 	std::cout << "Start Time:  " << marketDataQueue.size() << std::endl;
-	std::thread producerThread(dataProducer, std::ref(startTime));
-	std::thread consumerThread(dataConsumer, std::ref(dbConnector));
 
 
-
+	std::thread producerThread(dataProducer, interval, all_symbols);
+	std::thread consumerThread(std::bind(dataConsumer, std::ref(dbConnector)));
+	
 	while (!stopFlag)
 	{
 		if (!marketDataQueue.empty())
@@ -117,7 +120,7 @@ int main()
 	}
 
 	std::cout << "End2 Queue size:  " << inQueue << std::endl;
-	std::cout << "End3 Queue size:  " << marketDataQueue.size() << std::endl;
+	std::cout << "End3 marketDataQueue size:  " << marketDataQueue.size() << std::endl;
 	return 0;
 }
 

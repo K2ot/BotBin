@@ -24,11 +24,11 @@ public:
 
 };
 
-unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& startTime, std::queue<MarketData>& output_queue)
+unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime, std::queue<MarketData>& output_queue)
 {
 	const int limit = 1000; // Maksymalna liczba wyników na ¿¹danie
 	int i{ 0 };
-	//int64_t startTime = 0; // Ustaw startTime na 0, aby pobraæ dane od pocz¹tku istnienia waluty
+	int64_t startTime = extStartTime; // Ustaw startTime na 0, aby pobraæ dane od pocz¹tku istnienia waluty
 	std::vector<std::vector<double>> klines;
 
 	while (true)
@@ -59,7 +59,7 @@ unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const 
 		{
 			try
 			{
-				kline;
+				//TODO wrzucaæ do kolejki ca³e paczki a nie pojedyñcze rekordy
 				MarketData data;
 				data.symbol = symbol;
 				data.openTime = kline[0].asInt64();						// Open time: Czas otwarcia œwieczki (w milisekundach od 1970-01-01 UTC).

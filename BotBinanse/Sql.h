@@ -17,21 +17,23 @@ class MySQLConnector
 {
 private:
 	std::unique_ptr<mysqlx::Session> session;  // U¿yj inteligentnego wskaŸnika dla obiektu sesji
+	const std::string dataBase;
 
 public:
 	// Konstruktor inicjalizuj¹cy po³¹czenie z MySQL
 	MySQLConnector(const std::string& host, const int& port, const std::string& user, const std::string& password, const std::string& database)
+		:dataBase(database)
 	{
 		try
 		{
 			// Ustanów sesjê z serwerem MySQL  Session from_options("host", port, "user", "pwd", "db");
-			session = std::make_unique<mysqlx::Session>(host, port, user, password, database);
+			session = std::make_unique<mysqlx::Session>(host, port, user, password, dataBase);
 			std::cout << "Pomyœlnie po³¹czono z baz¹ danych." << std::endl;
 
-			executeQuery("USE " + database + "; ");
+			executeQuery("CREATE DATABASE IF NOT EXISTS " + dataBase + "; ");
+			executeQuery("USE " + dataBase + "; ");
 
-			//executeQuery("CREATE DATABASE IF NOT EXISTS " + database + "; ");
-			//std::string symbol{ "ETHPLN" };
+
 			//std::string	query = "CREATE TABLE IF NOT EXISTS `" + symbol + "` ("
 			//	"id INT AUTO_INCREMENT PRIMARY KEY, "
 			//	"open_time BIGINT NOT NULL, "
@@ -78,6 +80,42 @@ public:
 		}
 	}
 
+	bool addTable(std::string table)
+	{
+		try
+		{
+			std::string	query = "CREATE TABLE IF NOT EXISTS `" + table + "` ("
+				"id INT AUTO_INCREMENT PRIMARY KEY, "
+				"open_time BIGINT NOT NULL, "
+				"open_price DECIMAL(20,10) NOT NULL, "
+				"high_price DECIMAL(20,10) NOT NULL, "
+				"low_price DECIMAL(20,10) NOT NULL, "
+				"close_price DECIMAL(20,10) NOT NULL, "
+				"volume DECIMAL(20,10) NOT NULL, "
+				"close_time BIGINT NOT NULL, "
+				"quote_asset_volume DECIMAL(20,10) NOT NULL, "
+				"number_of_trades INT NOT NULL, "
+				"taker_buy_base_asset_volume DECIMAL(20,10) NOT NULL, "
+				"taker_buy_quote_asset_volume DECIMAL(20,10) NOT NULL, "
+				"ignore_flag VARCHAR(255), "
+				"order_book_data LONGTEXT, "
+				"recent_trades_data LONGTEXT, "
+				"currency_data LONGTEXT, "
+				"symbol_24hr_stats LONGTEXT, "
+				"market_stream_data LONGTEXT"
+				");";
+
+			mysqlx::SqlStatement stmt = session->sql(query);
+			mysqlx::SqlResult result = stmt.execute();
+			return true;
+		}
+		catch (const mysqlx::Error& err)
+		{
+			std::cerr << "B³¹d wykonania zapytania: " << err.what() << std::endl;
+			return false;  // Zwróæ false, jeœli wyst¹pi³ b³¹d
+		}
+	}
+
 	// Metoda wykonuj¹ca prost¹ kwerendê (tylko dla demonstracji)
 	bool executeQuery(const std::string& query)
 	{
@@ -99,6 +137,7 @@ public:
 	{
 		try
 		{
+			//TODO: wysy³aæ ca³e paczki do bazy 
 			mysqlx::Table table = session->getDefaultSchema().getTable(data.symbol);
 			table.insert("open_time", "open_price", "high_price", "low_price", "close_price",
 				"volume", "close_time", "quote_asset_volume", "number_of_trades",
@@ -112,13 +151,62 @@ public:
 					data.currencyData, data.symbol24hrStats, data.marketStreamData)
 				.execute();
 		}
-		catch (const mysqlx::Error& err) {
+		catch (const mysqlx::Error& err)
+		{
 			std::cerr << "Error inserting data: " << err.what() << std::endl;
 		}
-		catch (std::exception& ex) {
+		catch (std::exception& ex)
+		{
 			std::cerr << "Exception occurred: " << ex.what() << std::endl;
 		}
 	}
+
+
+	int64_t fetchMaxOpenTime(const std::string& tableName)
+	{
+		try
+		{
+			// Pobieranie schematu bazy danych
+			mysqlx::Schema db = session->getSchema(dataBase);
+			// Pobieranie tabeli
+			mysqlx::Table table = db.getTable(tableName);
+
+			// Wykonanie zapytania
+			mysqlx::RowResult result = table.select("MAX(open_time) AS max_open_time").execute();
+
+			// Pobranie pierwszego wiersza wyników
+			mysqlx::Row row = result.fetchOne();
+
+			// Zwrócenie wyniku
+			if (!row.isNull())
+			{
+				return row[0].get<int64_t>();
+			}
+			else
+			{
+				std::cout << "No data found in " << tableName << std::endl;
+				return 0;  // Zwraca 0, gdy brak danych
+			}
+		}
+		catch (const mysqlx::Error& err)
+		{
+			std::cerr << "Database Error: " << err.what() << std::endl;
+			return 0;  // Zwraca 0 w przypadku b³êdu bazy danych
+		}
+		catch (const std::exception& ex)
+		{
+			std::cerr << "STD Exception: " << ex.what() << std::endl;
+			return 0;  // Zwraca 0 w przypadku ogólnego wyj¹tku
+		}
+		catch (...)
+		{
+			std::cerr << "Unknown exception occurred" << std::endl;
+			return 0;  // Zwraca 0 w przypadku nieznanych wyj¹tków
+		}
+	}
+
+
+
 };
 
 
