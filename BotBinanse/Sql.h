@@ -133,23 +133,32 @@ public:
 		}
 	}
 
-	void sendDataToDatabase(const MarketData& data)
+	void sendDataToDatabase(const std::vector<MarketData>& dataBatch)
 	{
 		try
 		{
-			//TODO: wysy³aæ ca³e paczki do bazy 
-			mysqlx::Table table = session->getDefaultSchema().getTable(data.symbol);
-			table.insert("open_time", "open_price", "high_price", "low_price", "close_price",
+			// U¿yjemy pierwszego symbolu dla przyk³adu, zak³adaj¹c, ¿e wszystkie dane maj¹ ten sam symbol
+			mysqlx::Table table = session->getDefaultSchema().getTable(dataBatch.front().symbol);
+
+			// Rozpocznij konstruowanie zapytania
+			mysqlx::TableInsert insert = table.insert("open_time", "open_price", "high_price", "low_price", "close_price",
 				"volume", "close_time", "quote_asset_volume", "number_of_trades",
 				"taker_buy_base_asset_volume", "taker_buy_quote_asset_volume",
 				"ignore_flag", "order_book_data", "recent_trades_data", "currency_data",
-				"symbol_24hr_stats", "market_stream_data")
-				.values(data.openTime, data.open, data.high, data.low, data.close,
+				"symbol_24hr_stats", "market_stream_data");
+
+			// Dodaj wszystkie wiersze do zapytania
+			for (const auto& data : dataBatch)
+			{
+				insert.values(data.openTime, data.open, data.high, data.low, data.close,
 					data.volume, data.closeTime, data.quoteAssetVolume, data.numberOfTrades,
 					data.takerBuyBaseAssetVolume, data.takerBuyQuoteAssetVolume,
 					data.ignore, data.orderBookData, data.recentTradesData,
-					data.currencyData, data.symbol24hrStats, data.marketStreamData)
-				.execute();
+					data.currencyData, data.symbol24hrStats, data.marketStreamData);
+			}
+
+			// Wykonaj zapytanie z wszystkimi wartoœciami
+			insert.execute();
 		}
 		catch (const mysqlx::Error& err)
 		{

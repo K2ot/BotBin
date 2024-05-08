@@ -13,18 +13,19 @@ class BinanceBot
 {
 	HttpClient http_client;
 	std::string get_binance_data(const std::string& endpoint);
-
 public:
 
-	BinanceBot() {};
+	std::queue<MarketData>& output_queue;
+	BinanceBot(std::queue<MarketData>& output_queue)
+		: output_queue(output_queue)
+	{};
 	~BinanceBot() {};
 	Json::Value get_ticker(const std::string& symbol);
 	std::vector<std::string> get_all_symbols();
-	unsigned int get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& startTime, std::queue<MarketData>& output_queue);
-
+	unsigned int get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime);
 };
 
-unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime, std::queue<MarketData>& output_queue)
+unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime)
 {
 	const int limit = 1000; // Maksymalna liczba wyników na ¿¹danie
 	int i{ 0 };
@@ -82,15 +83,14 @@ unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const 
 				data.symbol24hrStats = kline[15].asString();
 				data.marketStreamData = kline[16].asString();
 				i++;
-				output_queue.push(data);
+				this->output_queue.push(data);
 			}
 			catch (const std::exception& e)
 			{
 				std::cout << "E kline : root " << e.what() << std::endl;
 			}
 		};
-		//klines.push_back(kline_data);
-
+		
 		startTime = root[root.size() - 1][6].asInt64() + 1;	// Ustaw startTime na ostatni close time + 1
 
 		if (root.size() < limit)

@@ -11,19 +11,19 @@ unsigned int inQueue{ 0 };
 
 static void dataProducer(const std::string	interval, const std::vector<std::pair<std::string, int64_t>> all_symbols)
 {
-	BinanceBot bot;
+	BinanceBot bot(marketDataQueue);
 
 	for (const auto& symbol : all_symbols)
 	{
 		Json::Value ticker_data = bot.get_ticker(symbol.first);
-		std::cout << std::endl << "***********************************"  << std::endl;
+		std::cout << std::endl << "***********************************" << std::endl;
 		std::cout << "Current price of " << symbol.first << ": " << ticker_data["price"].asString() << std::endl;
 
 		std::cout << "Fetching historical data for: " << symbol.first << std::endl;
 		std::cout << "Latest opening time: " << symbol.second << std::endl;
 		std::cout << "Interval: " << interval << std::endl;
 
-		inQueue = bot.get_historical_klines(symbol.first, interval, symbol.second, marketDataQueue);
+		inQueue = bot.get_historical_klines(symbol.first, interval, symbol.second);
 
 	}
 	std::cout << "Queue size:  " << marketDataQueue.size() << std::endl;
@@ -33,9 +33,12 @@ static void dataProducer(const std::string	interval, const std::vector<std::pair
 
 static void dataConsumer(MySQLConnector& connector)
 {
+	std::vector<MarketData> dataBatch;
+	dataBatch.reserve(1000);
+
 	while (true)
 	{
-		MarketData data;
+
 		{
 			if (stopFlag && marketDataQueue.empty())
 			{
@@ -49,13 +52,16 @@ static void dataConsumer(MySQLConnector& connector)
 				continue;
 			}
 
-			// Pobierz dane z przodu kolejki
-			data = marketDataQueue.front();
-			marketDataQueue.pop();
+			while (!marketDataQueue.empty() && dataBatch.size() < 1000)
+			{
+				dataBatch.push_back(marketDataQueue.front());
+				marketDataQueue.pop();
+			}
 		}
 
 		// Wysyłanie danych do bazy danych 
-		connector.sendDataToDatabase(data);
+		connector.sendDataToDatabase(dataBatch);
+		dataBatch.clear();
 	}
 }
 
@@ -99,7 +105,7 @@ int main()
 
 	std::thread producerThread(dataProducer, interval, all_symbols);
 	std::thread consumerThread(std::bind(dataConsumer, std::ref(dbConnector)));
-	
+
 	while (!stopFlag)
 	{
 		if (!marketDataQueue.empty())
