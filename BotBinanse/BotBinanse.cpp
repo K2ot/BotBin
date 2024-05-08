@@ -4,7 +4,7 @@
 #include <functional>
 #include <utility>
 
-std::queue<MarketData> marketDataQueue; //TODO: zrobić kolejkę wektorów z damnymi z API 
+std::queue<MarketData> marketDataQueue;
 bool stopFlag{ false };
 std::condition_variable queueCondVar;
 unsigned int inQueue{ 0 };
@@ -33,8 +33,10 @@ static void dataProducer(const std::string	interval, const std::vector<std::pair
 
 static void dataConsumer(MySQLConnector& connector)
 {
+	const size_t dataBatchLimit{ 10 };
+
 	std::vector<MarketData> dataBatch;
-	dataBatch.reserve(1000);
+	dataBatch.reserve(dataBatchLimit);
 
 	while (true)
 	{
@@ -52,9 +54,9 @@ static void dataConsumer(MySQLConnector& connector)
 				continue;
 			}
 
-			while (!marketDataQueue.empty() && dataBatch.size() < 1000)
+			while (!marketDataQueue.empty() && dataBatch.size() < dataBatchLimit)
 			{
-				dataBatch.push_back(marketDataQueue.front());
+				dataBatch.push_back(marketDataQueue.front()); //TODO: wstawić / zrobić metodę walidacji danych (zaokrąglania danych)
 				marketDataQueue.pop();
 			}
 		}

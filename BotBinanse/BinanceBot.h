@@ -8,22 +8,29 @@
 #include "HttpClient.h"
 #include <thread>
 #include "ProjectDataTypes.h"
+#include <queue>
 
 class BinanceBot
 {
 	HttpClient http_client;
 	std::string get_binance_data(const std::string& endpoint);
-public:
+	std::queue<MarketData>& output_queue_;
 
-	std::queue<MarketData>& output_queue;
-	BinanceBot(std::queue<MarketData>& output_queue)
-		: output_queue(output_queue)
-	{};
-	~BinanceBot() {};
+public:
+	BinanceBot(std::queue<MarketData>& output_queue);
+
+	~BinanceBot();
 	Json::Value get_ticker(const std::string& symbol);
 	std::vector<std::string> get_all_symbols();
 	unsigned int get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime);
 };
+
+BinanceBot::BinanceBot(std::queue<MarketData>& output_queue)
+	: output_queue_(output_queue)
+{}
+
+inline BinanceBot::~BinanceBot()
+{}
 
 unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime)
 {
@@ -60,7 +67,6 @@ unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const 
 		{
 			try
 			{
-				//TODO wrzucaæ do kolejki ca³e paczki a nie pojedyñcze rekordy
 				MarketData data;
 				data.symbol = symbol;
 				data.openTime = kline[0].asInt64();						// Open time: Czas otwarcia œwieczki (w milisekundach od 1970-01-01 UTC).
@@ -83,7 +89,8 @@ unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const 
 				data.symbol24hrStats = kline[15].asString();
 				data.marketStreamData = kline[16].asString();
 				i++;
-				this->output_queue.push(data);
+				
+				output_queue_.push(data);
 			}
 			catch (const std::exception& e)
 			{

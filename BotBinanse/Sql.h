@@ -158,6 +158,7 @@ public:
 			}
 
 			// Wykonaj zapytanie z wszystkimi wartoœciami
+			
 			insert.execute();
 		}
 		catch (const mysqlx::Error& err)
