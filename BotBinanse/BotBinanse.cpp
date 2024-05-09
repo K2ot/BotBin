@@ -33,7 +33,7 @@ static void dataProducer(const std::string	interval, const std::vector<std::pair
 
 static void dataConsumer(MySQLConnector& connector)
 {
-	const size_t dataBatchLimit{ 10 };
+	const size_t dataBatchLimit{ 50 };
 
 	std::vector<MarketData> dataBatch;
 	dataBatch.reserve(dataBatchLimit);
@@ -56,7 +56,9 @@ static void dataConsumer(MySQLConnector& connector)
 
 			while (!marketDataQueue.empty() && dataBatch.size() < dataBatchLimit)
 			{
-				dataBatch.push_back(marketDataQueue.front()); //TODO: wstawić / zrobić metodę walidacji danych (zaokrąglania danych)
+				MarketData dataB = marketDataQueue.front();
+				dataB.roundMarketData();
+				dataBatch.push_back(dataB); //TODO: wstawić / zrobić metodę walidacji danych (zaokrąglania danych)
 				marketDataQueue.pop();
 			}
 		}

@@ -34,7 +34,8 @@ inline BinanceBot::~BinanceBot()
 
 unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const std::string& interval, const int64_t& extStartTime)
 {
-	const int limit = 1000; // Maksymalna liczba wyników na ¿¹danie
+	const int limit{ 1000 }; // Maksymalna liczba wyników na ¿¹danie
+	const int delay{ 500 }; // OpóŸnienie, aby nie przekroczyæ limitu API Binance
 	int i{ 0 };
 	int64_t startTime = extStartTime; // Ustaw startTime na 0, aby pobraæ dane od pocz¹tku istnienia waluty
 	std::vector<std::vector<double>> klines;
@@ -104,7 +105,7 @@ unsigned int BinanceBot::get_historical_klines(const std::string& symbol, const 
 		{
 			break;
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Dodaj opóŸnienie, aby nie przekroczyæ limitu API Binance
+		std::this_thread::sleep_for(std::chrono::milliseconds(delay));
 	}
 	return i;
 }
