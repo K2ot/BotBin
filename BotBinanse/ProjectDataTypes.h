@@ -1,10 +1,15 @@
 #pragma once
 #include <string>
+#include <iostream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 struct MarketData
 {
 	std::string symbol;
 	long long openTime;                  // Czas otwarcia œwiecy, w formacie UNIX timestamp
+	std::string timeStamp;				 // Czas otwarcia œwiecy, w formacie UNIX timestamp -> RRRR/MM/DD_T_GG/MM/SS
 	double open;                         // Cena otwarcia
 	double high;                         // Najwy¿sza cena
 	double low;                          // Najni¿sza cena
@@ -24,6 +29,40 @@ struct MarketData
 	std::string symbol24hrStats;         // Statystyki 24-godzinne dla symbolu
 	std::string marketStreamData;        // Dane strumieniowe rynku
 
+	bool isSymbol()
+	{
+		if (symbol.empty())
+		{
+			std::cerr << "No Symbol" << std::endl;
+			return false;
+		}
+		return true;
+	}
+
+
+
+	void convertEpochToDateTime()
+	{
+		// Konwersja milisekund na sekundy
+		std::chrono::seconds sec(openTime / 1000);
+
+		// Utworzenie punktu czasowego na podstawie sekund
+		std::chrono::time_point<std::chrono::system_clock> tp(sec);
+
+		// Pobranie czasu jako tm (struktura C)
+		std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+		std::tm dt; // Struktura czasu
+
+		// U¿ywanie localtime_s zamiast localtime
+		localtime_s(&dt, &tt);
+
+		// Formatowanie daty i czasu
+		std::stringstream ss;
+		ss << std::put_time(&dt, "%Y/%m/%d_%T"); // Uwaga na dodanie adresu struktury dt
+
+		timeStamp = ss.str();
+	}
+
 	void roundMarketData()
 	{
 		open = roundDecimal(open);
@@ -39,7 +78,7 @@ struct MarketData
 private:
 	double roundDecimal(double value)
 	{
-		const int precision{ 10 };
+		const int precision{ 6 };
 		std::stringstream ss;
 		ss << std::fixed << std::setprecision(precision) << value;
 		ss >> value;

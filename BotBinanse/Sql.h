@@ -34,29 +34,6 @@ public:
 			executeQuery("USE " + dataBase + "; ");
 
 
-			//std::string	query = "CREATE TABLE IF NOT EXISTS `" + symbol + "` ("
-			//	"id INT AUTO_INCREMENT PRIMARY KEY, "
-			//	"open_time BIGINT NOT NULL, "
-			//	"open_price DECIMAL(20,10) NOT NULL, "
-			//	"high_price DECIMAL(20,10) NOT NULL, "
-			//	"low_price DECIMAL(20,10) NOT NULL, "
-			//	"close_price DECIMAL(20,10) NOT NULL, "
-			//	"volume DECIMAL(20,10) NOT NULL, "
-			//	"close_time BIGINT NOT NULL, "
-			//	"quote_asset_volume DECIMAL(20,10) NOT NULL, "
-			//	"number_of_trades INT NOT NULL, "
-			//	"taker_buy_base_asset_volume DECIMAL(20,10) NOT NULL, "
-			//	"taker_buy_quote_asset_volume DECIMAL(20,10) NOT NULL, "
-			//	"ignore_flag VARCHAR(255), "
-			//	"order_book_data LONGTEXT, "
-			//	"recent_trades_data LONGTEXT, "
-			//	"currency_data LONGTEXT, "
-			//	"symbol_24hr_stats LONGTEXT, "
-			//	"market_stream_data LONGTEXT"
-			//	");";
-			//executeQuery(query);
-
-
 		}
 		catch (const mysqlx::Error& err)
 		{
@@ -85,18 +62,18 @@ public:
 		try
 		{
 			std::string	query = "CREATE TABLE IF NOT EXISTS `" + table + "` ("
-				"id INT AUTO_INCREMENT PRIMARY KEY, "
-				"open_time BIGINT NOT NULL, "
-				"open_price DECIMAL(20,10) NOT NULL, "
-				"high_price DECIMAL(20,10) NOT NULL, "
-				"low_price DECIMAL(20,10) NOT NULL, "
-				"close_price DECIMAL(20,10) NOT NULL, "
-				"volume DECIMAL(20,10) NOT NULL, "
+				"open_time BIGINT NOT NULL PRIMARY KEY, "
+				"timeStamp VARCHAR(255), "
+				"open_price DECIMAL(20,6) NOT NULL, "
+				"high_price DECIMAL(20,6) NOT NULL, "
+				"low_price DECIMAL(20,6) NOT NULL, "
+				"close_price DECIMAL(20,6) NOT NULL, "
+				"volume DECIMAL(20,6) NOT NULL, "
 				"close_time BIGINT NOT NULL, "
-				"quote_asset_volume DECIMAL(20,10) NOT NULL, "
+				"quote_asset_volume DECIMAL(20,6) NOT NULL, "
 				"number_of_trades INT NOT NULL, "
-				"taker_buy_base_asset_volume DECIMAL(20,10) NOT NULL, "
-				"taker_buy_quote_asset_volume DECIMAL(20,10) NOT NULL, "
+				"taker_buy_base_asset_volume DECIMAL(20,6) NOT NULL, "
+				"taker_buy_quote_asset_volume DECIMAL(20,6) NOT NULL, "
 				"ignore_flag VARCHAR(255), "
 				"order_book_data LONGTEXT, "
 				"recent_trades_data LONGTEXT, "
@@ -141,7 +118,7 @@ public:
 			mysqlx::Table table = session->getDefaultSchema().getTable(dataBatch.front().symbol);
 
 			// Rozpocznij konstruowanie zapytania
-			mysqlx::TableInsert insert = table.insert("open_time", "open_price", "high_price", "low_price", "close_price",
+			mysqlx::TableInsert insert = table.insert("open_time", "timeStamp", "open_price", "high_price", "low_price", "close_price",
 				"volume", "close_time", "quote_asset_volume", "number_of_trades",
 				"taker_buy_base_asset_volume", "taker_buy_quote_asset_volume",
 				"ignore_flag", "order_book_data", "recent_trades_data", "currency_data",
@@ -150,7 +127,7 @@ public:
 			// Dodaj wszystkie wiersze do zapytania
 			for (const auto& data : dataBatch)
 			{
-				insert.values(data.openTime, data.open, data.high, data.low, data.close,
+				insert.values(data.openTime,data.timeStamp, data.open, data.high, data.low, data.close,
 					data.volume, data.closeTime, data.quoteAssetVolume, data.numberOfTrades,
 					data.takerBuyBaseAssetVolume, data.takerBuyQuoteAssetVolume,
 					data.ignore, data.orderBookData, data.recentTradesData,

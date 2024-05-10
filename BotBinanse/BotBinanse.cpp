@@ -20,7 +20,7 @@ static void dataProducer(const std::string	interval, const std::vector<std::pair
 		std::cout << "Current price of " << symbol.first << ": " << ticker_data["price"].asString() << std::endl;
 
 		std::cout << "Fetching historical data for: " << symbol.first << std::endl;
-		std::cout << "Latest opening time: " << symbol.second << std::endl;
+		std::cout << "Latest opening time: " << symbol.second - 1 << std::endl;
 		std::cout << "Interval: " << interval << std::endl;
 
 		inQueue = bot.get_historical_klines(symbol.first, interval, symbol.second);
@@ -33,14 +33,13 @@ static void dataProducer(const std::string	interval, const std::vector<std::pair
 
 static void dataConsumer(MySQLConnector& connector)
 {
-	const size_t dataBatchLimit{ 50 };
+	const size_t dataBatchLimit{ 25 };
 
 	std::vector<MarketData> dataBatch;
 	dataBatch.reserve(dataBatchLimit);
 
 	while (true)
 	{
-
 		{
 			if (stopFlag && marketDataQueue.empty())
 			{
@@ -57,8 +56,13 @@ static void dataConsumer(MySQLConnector& connector)
 			while (!marketDataQueue.empty() && dataBatch.size() < dataBatchLimit)
 			{
 				MarketData dataB = marketDataQueue.front();
-				dataB.roundMarketData();
-				dataBatch.push_back(dataB); //TODO: wstawić / zrobić metodę walidacji danych (zaokrąglania danych)
+				if (dataB.isSymbol())
+				{
+					dataB.roundMarketData();
+					dataB.convertEpochToDateTime();
+					dataBatch.push_back(dataB);
+				}
+
 				marketDataQueue.pop();
 			}
 		}
@@ -79,10 +83,10 @@ int main()
 
 	all_symbols.push_back(std::make_pair("ETHPLN", 0));
 	all_symbols.push_back(std::make_pair("BTCPLN", 0));
-	// all_symbols.push_back(std::make_pair("BTCUSDT", 0);
-	// all_symbols.push_back("ETHUSDT", 0);
-	// all_symbols.push_back("ETHBTC", 0);
-	// all_symbols.push_back("BTCETH", 0);
+	all_symbols.push_back(std::make_pair("BTCUSDT", 0));
+	all_symbols.push_back(std::make_pair("ETHUSDT", 0));
+	all_symbols.push_back(std::make_pair("ETHBTC", 0));
+
 
 	// Parametry do połączenia z bazą danych
 	std::string host = "localhost";  // Adres serwera bazy danych
@@ -99,6 +103,7 @@ int main()
 		dbConnector.addTable(symbol.first);
 		symbol.second = dbConnector.fetchMaxOpenTime(symbol.first);
 		std::cout << "Currency pair:  " << symbol.first << " Max Open time  " << symbol.second << std::endl;
+		++symbol.second;
 	}
 
 	std::cout << "Start Queue size:  " << marketDataQueue.size() << std::endl;
