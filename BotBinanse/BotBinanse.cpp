@@ -83,7 +83,7 @@ int main()
 
 	all_symbols.push_back(std::make_pair("ETHPLN", 0));
 	all_symbols.push_back(std::make_pair("BTCPLN", 0));
-	all_symbols.push_back(std::make_pair("BTCUSDT", 0));
+	//all_symbols.push_back(std::make_pair("BTCUSDT", 0));
 	all_symbols.push_back(std::make_pair("ETHUSDT", 0));
 	all_symbols.push_back(std::make_pair("ETHBTC", 0));
 
