@@ -9,7 +9,8 @@ struct MarketData
 {
 	std::string symbol;
 	long long openTime;                  // Czas otwarcia œwiecy, w formacie UNIX timestamp
-	std::string timeStamp;				 // Czas otwarcia œwiecy, w formacie UNIX timestamp -> RRRR/MM/DD_T_GG/MM/SS
+	std::string openTimeStamp;			 // Czas otwarcia œwiecy, w formacie UNIX timestamp -> RRRR/MM/DD_T_GG/MM/SS
+	std::string closeTimeStamp;			 // Czas zamkniêcia œwiecy, w formacie UNIX timestamp -> RRRR/MM/DD_T_GG/MM/SS
 	double open;                         // Cena otwarcia
 	double high;                         // Najwy¿sza cena
 	double low;                          // Najni¿sza cena
@@ -41,10 +42,10 @@ struct MarketData
 
 
 
-	void convertEpochToDateTime()
+ static	std::string convertEpochToDateTime(long long Time)
 	{
 		// Konwersja milisekund na sekundy
-		std::chrono::seconds sec(openTime / 1000);
+		std::chrono::seconds sec(Time / 1000);
 
 		// Utworzenie punktu czasowego na podstawie sekund
 		std::chrono::time_point<std::chrono::system_clock> tp(sec);
@@ -60,7 +61,7 @@ struct MarketData
 		std::stringstream ss;
 		ss << std::put_time(&dt, "%Y/%m/%d_%T"); // Uwaga na dodanie adresu struktury dt
 
-		timeStamp = ss.str();
+		return ss.str();
 	}
 
 	void roundMarketData()

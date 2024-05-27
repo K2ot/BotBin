@@ -59,7 +59,8 @@ static void dataConsumer(MySQLConnector& connector)
 				if (dataB.isSymbol())
 				{
 					dataB.roundMarketData();
-					dataB.convertEpochToDateTime();
+					dataB.openTimeStamp = MarketData::convertEpochToDateTime(dataB.openTime);
+					dataB.closeTimeStamp = MarketData::convertEpochToDateTime(dataB.closeTime);
 					dataBatch.push_back(dataB);
 				}
 
@@ -76,16 +77,16 @@ static void dataConsumer(MySQLConnector& connector)
 int main()
 {
 	setlocale(LC_CTYPE, "Polish");
-	const	std::string	interval{ "1m" };
+	const	std::string	interval{ "15m" };
 
 	//zrobic wektor par: waluta -> najnowsza data otwarcia
 	std::vector<std::pair<std::string, int64_t>> all_symbols;
 
 	all_symbols.push_back(std::make_pair("ETHPLN", 0));
-	all_symbols.push_back(std::make_pair("BTCPLN", 0));
+	//all_symbols.push_back(std::make_pair("BTCPLN", 0));
 	//all_symbols.push_back(std::make_pair("BTCUSDT", 0));
-	all_symbols.push_back(std::make_pair("ETHUSDT", 0));
-	all_symbols.push_back(std::make_pair("ETHBTC", 0));
+	//all_symbols.push_back(std::make_pair("ETHUSDT", 0));
+	//all_symbols.push_back(std::make_pair("ETHBTC", 0));
 
 
 	// Parametry do połączenia z bazą danych
