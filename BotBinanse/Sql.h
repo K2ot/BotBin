@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <queue>
 #include <thread>
+#include "ProjectDataTypes.h"
 
 std::mutex queueMutex;
 
@@ -196,39 +197,3 @@ public:
 
 };
 
-
-//std::string query = "CREATE DATABASE IF NOT EXISTS " + database + "; ";
-//dbConnector.executeQuery(query);
-////std::vector<std::string> all_symbols = bot.get_all_symbols();
-//std::vector<std::string> all_symbols;
-//all_symbols.push_back("ETHPLN");
-//// all_symbols.push_back("BTCPLN");
-//// all_symbols.push_back("BTCUSDT");
-//// all_symbols.push_back("ETHUSDT");
-//// all_symbols.push_back("ETHBTC");
-//// all_symbols.push_back("BTCETH");
-
-//for (const auto& symbol : all_symbols)
-//{
-//	query = "CREATE TABLE IF NOT EXISTS `" + symbol + "` ("
-//		"id INT AUTO_INCREMENT PRIMARY KEY, "
-//		"open_time BIGINT NOT NULL, "
-//		"open_price DECIMAL(20,10) NOT NULL, "
-//		"high_price DECIMAL(20,10) NOT NULL, "
-//		"low_price DECIMAL(20,10) NOT NULL, "
-//		"close_price DECIMAL(20,10) NOT NULL, "
-//		"volume DECIMAL(20,10) NOT NULL, "
-//		"close_time BIGINT NOT NULL, "
-//		"quote_asset_volume DECIMAL(20,10) NOT NULL, "
-//		"number_of_trades INT NOT NULL, "
-//		"taker_buy_base_asset_volume DECIMAL(20,10) NOT NULL, "
-//		"taker_buy_quote_asset_volume DECIMAL(20,10) NOT NULL, "
-//		"ignore_flag VARCHAR(255), "
-//		"order_book_data LONGTEXT, "
-//		"recent_trades_data LONGTEXT, "
-//		"currency_data LONGTEXT, "
-//		"symbol_24hr_stats LONGTEXT, "
-//		"market_stream_data LONGTEXT"
-//		");";
-//	dbConnector.executeQuery(query);
-//}
