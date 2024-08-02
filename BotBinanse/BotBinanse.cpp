@@ -83,10 +83,10 @@ int main()
 	std::vector<std::pair<std::string, int64_t>> all_symbols;
 
 	all_symbols.push_back(std::make_pair("ETHPLN", 0));
-	//all_symbols.push_back(std::make_pair("BTCPLN", 0));
-	//all_symbols.push_back(std::make_pair("BTCUSDT", 0));
-	//all_symbols.push_back(std::make_pair("ETHUSDT", 0));
-	//all_symbols.push_back(std::make_pair("ETHBTC", 0));
+	all_symbols.push_back(std::make_pair("BTCPLN", 0));
+	all_symbols.push_back(std::make_pair("BTCUSDT", 0));
+	all_symbols.push_back(std::make_pair("ETHUSDT", 0));
+	all_symbols.push_back(std::make_pair("ETHBTC", 0));
 
 
 	// Parametry do połączenia z bazą danych

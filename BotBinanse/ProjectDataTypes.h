@@ -59,7 +59,7 @@ struct MarketData
 
 		// Formatowanie daty i czasu
 		std::stringstream ss;
-		ss << std::put_time(&dt, "%Y/%m/%d_%T"); // Uwaga na dodanie adresu struktury dt
+		ss << std::put_time(&dt, "%Y/%m/%dT%T"); // Uwaga na dodanie adresu struktury dt
 
 		return ss.str();
 	}

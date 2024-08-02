@@ -123,7 +123,7 @@ public:
 			mysqlx::RowResult result = table.select("*")
 				.where("open_time >= :open_time")
 				.orderBy("open_time")
-				.limit(44640)
+				.limit(3000)
 				.bind("open_time", randomMiesiac * 1000)
 				.execute();
 
@@ -138,7 +138,7 @@ public:
 					<< "," << row[5].get<double>()  // close_price
 					<< "," << row[6].get<double>()   // volume
 					//<< "," << row[7].get<int64_t>()  // close_time
-					<< "," << row[8].get<std::string>()   // timeStamp
+					<< "," << row[8].get<std::string>()   //close timeStamp
 					<< "," << row[9].get<double>()   // quote_asset_volume
 					<< "," << row[10].get<int>()  // number_of_trades
 					<< "," << row[11].get<double>()  // taker_buy_base_asset_volume
@@ -170,7 +170,7 @@ public:
 			{
 				insert.values(
 					data.openTime, data.openTimeStamp, data.open, data.high, data.low, data.close,
-					data.volume, data.closeTimeStamp, data.closeTime, data.quoteAssetVolume, data.numberOfTrades,
+					data.volume,data.closeTime, data.closeTimeStamp, data.quoteAssetVolume, data.numberOfTrades,
 					data.takerBuyBaseAssetVolume, data.takerBuyQuoteAssetVolume
 				);
 			}

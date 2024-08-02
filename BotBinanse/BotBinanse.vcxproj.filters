@@ -26,9 +26,6 @@
     <ClInclude Include="BinanceBot.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="TradingStrategy.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="Sql.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
